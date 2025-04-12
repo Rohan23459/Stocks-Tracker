@@ -7,8 +7,6 @@ import (
 	"stocks-tracker/models"
 )
 
-// DB is the global PostgreSQL database connection.
-// var DB *gorm.DB
 
 func autoMigrate() {
 	config.DB.AutoMigrate(
