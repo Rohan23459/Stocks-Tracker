@@ -1,4 +1,3 @@
-// handlers/auth.go - updated handlers with consistent JWT library
 package handlers
 
 import (
@@ -10,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5" // Updated to golang-jwt/jwt/v5
+	"github.com/golang-jwt/jwt/v5" 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -27,7 +26,6 @@ func Signup(c *gin.Context) {
 		return
 	}
 
-	// Check if user exists
 	var existingUser models.User
 	err := config.DB.Where("email = ?", input.Email).First(&existingUser).Error // Using config.DB instead of database.DB
 
@@ -36,13 +34,11 @@ func Signup(c *gin.Context) {
 		return
 	}
 
-	// Handle database errors other than "not found"
 	if err != gorm.ErrRecordNotFound {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error", "details": err.Error()})
 		return
 	}
 
-	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
@@ -54,7 +50,7 @@ func Signup(c *gin.Context) {
 		Password: string(hashedPassword),
 	}
 
-	if err := config.DB.Create(&user).Error; err != nil { // Using config.DB
+	if err := config.DB.Create(&user).Error; err != nil { 
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating user", "details": err.Error()})
 		return
 	}
@@ -82,7 +78,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Create claims with user ID and expiration time
+	
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
