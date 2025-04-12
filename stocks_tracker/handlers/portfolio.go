@@ -24,7 +24,6 @@ func AddStock(c *gin.Context) {
 		return
 	}
 
-	// Start transaction
 	tx := config.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -32,7 +31,6 @@ func AddStock(c *gin.Context) {
 		}
 	}()
 
-	// Create portfolio entry
 	portfolio := models.Portfolio{
 		UserID:        userID,
 		Symbol:        input.Symbol,
@@ -46,7 +44,6 @@ func AddStock(c *gin.Context) {
 		return
 	}
 
-	// Create transaction history
 	transaction := models.Transaction{
 		UserID:   userID,
 		Type:     "buy",
@@ -112,7 +109,6 @@ func UpdateStock(c *gin.Context) {
 		return
 	}
 
-	// Find existing stock
 	var existing models.Portfolio
 	if err := config.DB.Where("id = ? AND user_id = ?", stockID, userID).First(&existing).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Stock not found"})
@@ -123,7 +119,6 @@ func UpdateStock(c *gin.Context) {
 	updateData := make(map[string]interface{})
 
 	if input.Quantity != nil {
-		// Record sell transaction if quantity decreases
 		if *input.Quantity < existing.Quantity {
 			transaction := models.Transaction{
 				UserID:   userID,
@@ -170,14 +165,12 @@ func DeleteStock(c *gin.Context) {
 
 	tx := config.DB.Begin()
 
-	// Delete portfolio entry
 	if err := tx.Delete(&portfolio).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete stock"})
 		return
 	}
 
-	// Record deletion as transaction
 	transaction := models.Transaction{
 		UserID:   userID,
 		Type:     "sell",
