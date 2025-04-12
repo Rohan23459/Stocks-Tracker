@@ -36,14 +36,12 @@ func GetStockPrice(c *gin.Context) {
 	symbol := c.Param("symbol")
 	ctx := context.Background()
 
-	// Check Redis cache first
 	cachedPrice, err := config.Rdb.Get(ctx, fmt.Sprintf("stock:%s:price", symbol)).Result()
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"symbol": symbol, "price": cachedPrice})
 		return
 	}
 
-	// Fetch from Alpha Vantage API
 	apiKey := os.Getenv("ALPHA_VANTAGE_API_KEY")
 	url := fmt.Sprintf("https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=%s&apikey=%s", symbol, apiKey)
 
@@ -65,19 +63,17 @@ func GetStockPrice(c *gin.Context) {
 		return
 	}
 
-	// Cache the price in Redis
 	err = config.Rdb.Set(ctx, fmt.Sprintf("stock:%s:price", symbol), result.GlobalQuote.Price, cacheExpiration).Err()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cache price"})
 		return
 	}
 	PriceStr := result.GlobalQuote.Price
-	PriceFloat, err := strconv.ParseFloat(PriceStr, 64) // 64-bit float
+	PriceFloat, err := strconv.ParseFloat(PriceStr, 64) 
 	if err != nil {
 		fmt.Println("Error converting string to float:", err)
 		return
 	}
-	// Store in PostgreSQL
 	priceEntry := models.StockPrice{
 		Symbol:    symbol,
 		Price:     PriceFloat,
@@ -92,7 +88,6 @@ func GetHistoricalData(c *gin.Context) {
 	symbol := c.Param("symbol")
 	ctx := context.Background()
 
-	// Check Redis cache
 	cachedData, err := config.Rdb.Get(ctx, fmt.Sprintf("stock:%s:history", symbol)).Result()
 	if err == nil {
 		var historicalData []models.StockPrice
@@ -101,7 +96,6 @@ func GetHistoricalData(c *gin.Context) {
 		return
 	}
 
-	// Fetch from Alpha Vantage API
 	apiKey := os.Getenv("ALPHA_VANTAGE_API_KEY")
 	url := fmt.Sprintf("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=%s&apikey=%s", symbol, apiKey)
 
@@ -123,12 +117,11 @@ func GetHistoricalData(c *gin.Context) {
 		return
 	}
 
-	// Process and store historical data
 
 	var historicalData []models.StockPrice
 	for date, data := range result.TimeSeriesDaily {
 		closePriceStr := data.Close
-		closePriceFloat, err := strconv.ParseFloat(closePriceStr, 64) // 64-bit float
+		closePriceFloat, err := strconv.ParseFloat(closePriceStr, 64) 
 		if err != nil {
 			fmt.Println("Error converting string to float:", err)
 			return
@@ -142,10 +135,8 @@ func GetHistoricalData(c *gin.Context) {
 		historicalData = append(historicalData, entry)
 	}
 
-	// Batch insert into PostgreSQL
 	database.CreateInBatches(historicalData, 100)
 
-	// Cache in Redis
 	jsonData, _ := json.Marshal(historicalData)
 	config.Rdb.Set(ctx, fmt.Sprintf("stock:%s:history", symbol), jsonData, 24*time.Hour)
 
