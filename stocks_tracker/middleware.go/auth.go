@@ -1,4 +1,3 @@
-// middleware/jwt.go - updated middleware with consistent JWT library
 package middleware
 
 import (
@@ -23,12 +22,7 @@ func JWTAuth() gin.HandlerFunc {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		jwtSecret := os.Getenv("JWT_SECRET")
 
-		// Optional debug logging
-		// fmt.Printf("JWT Secret length: %d\n", len(jwtSecret))
-		// fmt.Printf("Token being verified: %s\n", tokenString)
-
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			// Validate the signing method
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
@@ -54,7 +48,6 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		// Add expiration check
 		if exp, ok := claims["exp"].(float64); ok {
 			if time.Now().Unix() > int64(exp) {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
